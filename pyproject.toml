@@ -21,6 +21,10 @@ dev = [
     "pytest-cov>=5.0",
 ]
 
+validate = [
+    "TA-Lib>=0.4.28",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/stock_advisor"]
 

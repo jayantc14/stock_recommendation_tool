@@ -9,3 +9,7 @@ dist/
 build/
 .env
 .DS_Store
+
+# Local data cache (rebuild with scripts/build_price_dataset.py)
+data/prices/
+data/reports/

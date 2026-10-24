@@ -24,6 +24,13 @@ _WEIGHTS = {
 }
 
 
+MIN_BARS = 200  # the 200-day SMA needs this much history to exist
+
+
+class InsufficientHistoryError(ValueError):
+    pass
+
+
 @dataclass
 class TechnicalSignal:
     momentum_score: float
@@ -96,6 +103,11 @@ def compute_technical_signal(df: pd.DataFrame) -> TechnicalSignal:
     `df` must have Open/High/Low/Close/Volume columns and enough history for
     a 200-day SMA (at least ~200 rows) to be meaningful.
     """
+    if len(df) < MIN_BARS:
+        raise InsufficientHistoryError(
+            f"need at least {MIN_BARS} bars for the 200-day SMA, got {len(df)}; "
+            "a shorter history would silently zero the trend and volume scores"
+        )
     close, high, low, volume = df["Close"], df["High"], df["Low"], df["Volume"]
 
     sma50 = sma(close, 50)
