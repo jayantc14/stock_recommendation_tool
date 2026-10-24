@@ -2,7 +2,7 @@
 
 Usage:
     python scripts/check_signal.py RELIANCE.NS
-    python scripts/check_signal.py AAPL --period 6mo
+    python scripts/check_signal.py AAPL --period 2y   # needs >= 200 daily bars
 """
 
 from __future__ import annotations

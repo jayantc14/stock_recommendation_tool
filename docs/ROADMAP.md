@@ -30,8 +30,8 @@ each step ends with something to validate before the next begins.
 | # | Step | Status |
 |---|---|---|
 | 0 | Data access (Yahoo reachable) | done |
-| 1 | Price data pipeline (Nifty 200 + benchmark, parquet cache, quality reports) | done, validate |
-| 2 | Expanded indicator library (ADX/DI, Stochastic, Williams %R, CCI, MFI, OBV, CMF, multi-horizon ROC, MA distances/crossovers, 52w high/low position, %B + bandwidth, ATR%, realised vol, Donchian, Aroon, relative strength vs index) plus history-length guard and div-by-zero fix | next |
+| 1 | Price data pipeline (Nifty 200 + benchmark, parquet cache, quality reports) | done |
+| 2 | Expanded indicator library (ADX/DI, Stochastic, Williams %R, CCI, MFI, OBV, CMF, multi-horizon ROC, MA distances/crossovers, 52w high/low position, %B + bandwidth, ATR%, realised vol, Donchian, Aroon, relative strength vs index) plus history-length guard and div-by-zero fix | done, validate |
 | 3 | Feature builder: continuous + categorical per indicator, scale-free, no look-ahead, leakage test | |
 | 4 | Labels and dataset: forward returns (5/20/60, raw + excess + cross-sectional rank), locked holdout, corporate-action exclusion | |
 | 5 | Univariate analysis: IC, quantile-bucket returns, continuous vs categorical | |
@@ -49,7 +49,7 @@ each step ends with something to validate before the next begins.
   Many are real (Yes Bank Mar-2020, IndusInd Mar-2020, PNB Oct-2017). At least these are data artifacts
   that would create fake -65% to -95% "returns": Nestle 2010-01-08 (split), Motilal Oswal 2024-01-01 (split),
   Patanjali 2020-01-27, Vedanta 2026-04-30 (demerger), Tata Motors/TMPV 2025-10-14 (demerger).
-- Proposed handling (awaiting confirmation): in step 4, drop training rows whose forward window overlaps a
+- Agreed handling: in step 4, drop training rows whose forward window overlaps a
   move >40%; review the 25-40% moves by eye.
 - Survivorship bias: the universe is today's Nifty 200, so delisted/dropped stocks are missing and backtests
   will look slightly optimistic. State this in the final report.
@@ -63,3 +63,16 @@ The holdout test in step 9 decides whether the score has any edge.
 
 Source of truth is GitHub. Heavy logic lives in `src/stock_advisor/` with tests; notebooks in `notebooks/` stay
 thin and import the package. Price data is not committed: rebuild with `python scripts/build_price_dataset.py`.
+
+## Step 2 notes
+
+- New in `technical/indicators.py`: ADX/+DI/-DI, Stochastic, Williams %R, CCI, MFI, OBV, Chaikin Money Flow, ROC,
+  distance from SMA/EMA, 52-week/Donchian range position, %B, Bollinger bandwidth, ATR%, realised volatility,
+  Aroon, relative strength vs benchmark. All are pure time-series transforms with no look-ahead (tested by
+  truncating future data and checking past values are unchanged).
+- Validation: 14 indicators match TA-Lib to <1e-6 on 7 real tickers (`scripts/validate_indicators_vs_talib.py`).
+  CMF has no TA-Lib equivalent and is tested against a plain loop. OBV is a cumulative level; the feature step
+  must use a normalised form (slope or ratio), not the raw value.
+- Fixed: `volume_trend` returns NaN (not inf) when baseline volume is 0; `compute_technical_signal` raises
+  `InsufficientHistoryError` with <200 bars instead of silently zeroing trend and volume.
+- Existing `scoring.py` is unchanged otherwise; it is replaced in step 8.

@@ -53,3 +53,11 @@ def test_entry_range_is_ordered_and_near_support():
     low, high = signal.entry_range
     assert low <= high
     assert signal.raw_indicators["support"] == pytest.approx(low)
+
+
+def test_short_history_raises_instead_of_silently_zeroing_scores():
+    from stock_advisor.technical.scoring import InsufficientHistoryError
+
+    df = _make_ohlcv(100 + np.arange(150, dtype=float))
+    with pytest.raises(InsufficientHistoryError):
+        compute_technical_signal(df)
