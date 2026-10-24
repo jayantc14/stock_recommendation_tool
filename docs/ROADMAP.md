@@ -76,3 +76,22 @@ thin and import the package. Price data is not committed: rebuild with `python s
 - Fixed: `volume_trend` returns NaN (not inf) when baseline volume is 0; `compute_technical_signal` raises
   `InsufficientHistoryError` with <200 bars instead of silently zeroing trend and volume.
 - Existing `scoring.py` is unchanged otherwise; it is replaced in step 8.
+
+### Step 2b: advanced indicator batch
+
+Added on request: Supertrend, parabolic SAR, Ichimoku (without the lagging span, which would leak the future),
+KAMA, Hull MA, WMA, linear-regression slope/R2, efficiency ratio, PPO, TRIX, CMO, Ultimate Oscillator, TSI, KST,
+Coppock, Awesome Oscillator, StochRSI, Keltner channels, Bollinger/Keltner squeeze ratio, Vortex, Elder Ray,
+Force Index, rolling VWAP distance, Chaikin A/D line and oscillator, Choppiness, Ulcer Index, Parkinson and
+Garman-Klass volatility, return skew/kurtosis, drawdown, up-day ratio, streak, candle anatomy (body/shadows/
+close location), overnight gap, rolling beta and correlation to the index, volume z-score, average dollar volume.
+
+- 26 of them are checked against TA-Lib on real data (`scripts/validate_indicators_vs_talib.py`); parabolic SAR
+  matches TA-Lib on 100% of the last 1,000 bars for all 182 tickers with enough history.
+- Bugs found by that comparison and fixed: KAMA turned to NaN forever after a flat-price stretch (Patanjali);
+  parabolic SAR ignored Wilder's rule that the SAR on a reversal bar cannot sit inside that bar's range.
+- Supertrend follows the standard (TradingView-style) band ratchet. It differs from pandas-ta on ~1.7% of bars
+  (pandas-ta's band logic differs); tested by hand-built cases and band-ordering properties instead.
+- Every indicator has a no-look-ahead test; deliberately breaking the KAMA fix and the Ichimoku shift made the
+  tests fail, so the tests do catch these bugs.
+- TA-Lib's `BETA(a, b)` regresses in (benchmark, stock) argument order; ours equals a direct OLS on returns.
