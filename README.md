@@ -20,9 +20,14 @@ is pre-computed and auditable.
       revenue/net-income growth and CAGR extracted from balance sheet/P&L,
       rolled up into a weighted fundamental score, with optional peer
       comparison.
-- [ ] Fundamental Analysis Engine — RAG half (embed + retrieve annual
-      report text for qualitative risk flags; the one place an LLM reasons
-      over prose rather than numbers)
+- [x] Fundamental Analysis Engine — RAG half (`src/stock_advisor/rag/`) —
+      chunk annual report text, retrieve the passages most relevant to a
+      qualitative-risk query (TF-IDF, no model download needed), and ask a
+      free/open-source LLM (via [Ollama](https://ollama.com), e.g.
+      `llama3.2`) to summarize risk flags grounded only in those retrieved
+      passages. The one place in the whole system an LLM reasons over prose
+      instead of computing a number. `LLMClient` is a small interface, so
+      swapping in a paid model later (e.g. Claude) is a one-file addition.
 - [ ] Valuation Engine (DCF + relative valuation)
 - [ ] News/Sentiment Engine
 - [ ] Weighted Scoring Aggregator
@@ -63,15 +68,33 @@ print(signal.latest_ratios)                    # ROE, ROCE, D/E, margins
 print(signal.growth)                           # revenue/net income growth, CAGR
 ```
 
+```python
+from stock_advisor.rag.llm_client import OllamaClient
+from stock_advisor.rag.risk_extraction import extract_risk_flags
+
+with open("annual_report.txt") as f:
+    document_text = f.read()
+
+llm_client = OllamaClient(model="llama3.2")  # needs Ollama running locally
+flags = extract_risk_flags(document_text, llm_client)
+
+for flag in flags:
+    print(flag.risk_type, flag.severity, flag.summary)
+```
+
 Or from the command line:
 
 ```bash
 python scripts/check_signal.py RELIANCE.NS
 python scripts/check_fundamentals.py RELIANCE.NS
+python scripts/check_qualitative_risks.py annual_report.txt
 ```
 
-Note: both fetchers call Yahoo Finance via `yfinance` and need outbound
-internet access to `finance.yahoo.com`. The engines themselves
-(`stock_advisor.technical`, `stock_advisor.fundamental`) are pure
-pandas/numpy with no network dependency, which is why they're unit-tested
-against synthetic data.
+Note: `check_signal.py`/`check_fundamentals.py` call Yahoo Finance via
+`yfinance` and need outbound internet access to `finance.yahoo.com`.
+`check_qualitative_risks.py` needs [Ollama](https://ollama.com) installed
+and running locally with a model pulled (`ollama pull llama3.2`). The
+engines themselves (`stock_advisor.technical`, `stock_advisor.fundamental`,
+and the retrieval/chunking/scoring parts of `stock_advisor.rag`) are pure
+Python with no network dependency, which is why they're unit-tested against
+synthetic data and a mocked LLM client.
